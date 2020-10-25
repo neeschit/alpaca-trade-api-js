@@ -78,7 +78,8 @@ The other difference is the way we subscribe to different channels.
 const client = alpaca.data_ws
 client.onConnect(function() {
   console.log("Connected")
-  client.subscribe(['alpacadatav1/T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])
+  client.subscribe(['alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/AM.AAPL']) // when using alpaca ws
+  client.subscribe(['alpacadatav1/T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])  // when using polygon ws
 })
 client.onDisconnect(() => {
   console.log("Disconnected")
@@ -163,13 +164,14 @@ updateAccountConfigurations(AccountConfigurations) => Promise<AccountConfigurati
 Calls `GET /account/activities` and returns account actvities.
 
 ```ts
-getActivities({
+getAccountActivities({
   activityTypes: string | string[], // Any valid activity type
   until: Date,
   after: Date,
   direction: string,
   date: Date,
-  pageSize: number
+  pageSize: number,
+  pageToken: string
 }) => Promise<AccountActivity[]>
 ```
 
@@ -200,11 +202,17 @@ createOrder({
   symbol: string, // any valid ticker symbol
   qty: number,
   side: 'buy' | 'sell',
-  type: 'market' | 'limit' | 'stop' | 'stop_limit',
+  type: 'market' | 'limit' | 'stop' | 'stop_limit' | 'trailing_stop',
   time_in_force: 'day' | 'gtc' | 'opg' | 'ioc',
-  limit_price: number,
-  stop_price: number,
-  client_order_id: string // optional
+  limit_price: number, // optional,
+  stop_price: number, // optional,
+  client_order_id: string, // optional,
+  extended_hours: boolean, // optional,
+  order_class: string, // optional,
+  take_profit: object, // optional,
+  stop_loss: object, // optional,
+  trail_price: string, // optional,
+  trail_percent: string // optional,
 }) => Promise<Order>
 ```
 
@@ -335,19 +343,26 @@ getBars(
   symbol | symbol[], // which ticker symbols to get bars for
   {
     limit: number,
-    start: date string yyyy-mm-dd,
-    end: date string yyyy-mm-dd,
-    after: date string yyyy-mm-dd,
-    until: date string yyyy-mm-dd
+    start: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
+    end: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
+    after: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
+    until: date isoformat string yyyy-mm-ddThh:MM:ss-04:00
   }
 ) => Promise<BarsObject>
 ```
 ###### example
 ```js
-this.alpaca.getBars('1Min', ['AAPL', 'TSLA'], {start:'2020-04-20', end:'2020-04-29'}).then((response) => {
+this.alpaca.getBars('1Min', ['AAPL', 'TSLA'], {start:'2020-04-20T09:30:00-04:00', end:'2020-04-29T16:00:00-04:00'}).then((response) => {
           console.log(response)
         })
+
+this.alpaca.getBars('1D', ['AAPL', 'TSLA'], {start:'2020-04-20T00:00:00-04:00', end:'2020-04-29T00:00:00-04:00samples'}).then((response) => {
+          console.log(response)
+        })
+
+
 ```
+note: to get the date of response samples you could do this `console.log(new Date(resp['AAPL'][0].startEpochTime*1000))`
 
 #### Get Aggregates
 
@@ -442,3 +457,13 @@ how to get the data you subscribed to. we do this by calling these methods
  the channel `'A.<SYMBOL>'`. (Polygon only)
 * `websocket.onStockAggMin(function(data))`: Register callback function for
  the channel `'AM.<SYMBOL>'` or `'alpacadatav1/AM.<SYMBOL>'`.
+
+## Running Multiple Strategies
+There's a way to execute more than one algorithm at once.<br>
+The websocket connection is limited to 1 connection per account. <br>
+For that exact purpose this ![project](https://github.com/shlomikushchi/alpaca-proxy-agent) was created<br>
+The steps to execute this are:
+* Run the Alpaca Proxy Agent as described in the project's README
+* Define this env variable: `DATA_PROXY_WS` to be the address of the proxy agent. (e.g: `DATA_PROXY_WS=ws://192.168.99.100:8765`)
+* execute your algorithm. it will connect to the servers through the proxy agent allowing you to execute multiple strategies
+
