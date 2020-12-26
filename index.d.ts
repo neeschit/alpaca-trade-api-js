@@ -100,8 +100,8 @@ declare namespace Alpaca {
         type: TradeType;
         side: TradeDirection;
         time_in_force: TimeInForce;
-        limit_price: number;
-        stop_price: number;
+        limit_price?: number;
+        stop_price?: number;
         filled_avg_price: number;
         status: OrderStatus;
         extended_hours: boolean;
