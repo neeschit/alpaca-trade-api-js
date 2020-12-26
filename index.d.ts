@@ -9,10 +9,22 @@ declare namespace Alpaca {
     }
     export interface GetAssetsParams {
         status: string;
+        asset_class: string;
     }
 
     export interface Asset {
         symbol: string;
+        asset_class: string;
+        exchange: Exchange;
+    }
+
+    export const enum Exchange {
+        AMEX = 'AMEX',
+        ARCA = 'ARCA',
+        BATS = 'BATS',
+        NYSE = 'NYSE',
+        NASDAQ = 'NASDAQ',
+        NYSEARCA = 'NYSEARCA'
     }
 
     export const enum TradeDirection {
@@ -72,7 +84,7 @@ declare namespace Alpaca {
 
     export interface AlpacaOrder {
         id: string;
-        client_order_id: string;
+        client_order_id?: string;
         created_at: string | Date;
         updated_at: string | Date;
         submitted_at: string | Date;
