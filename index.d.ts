@@ -116,7 +116,7 @@ declare namespace Alpaca {
         limit_price?: number;
         stop_price?: number;
         extended_hours: boolean;
-        order_class: "simple" | "bracket";
+        order_class: "simple" | "bracket" | "oco" | "oto";
         take_profit?: {
             limit_price: number;
         };
@@ -218,6 +218,7 @@ declare namespace Alpaca {
         getPositions(): Promise<AlpacaPosition[]>;
         getPosition(symbol: string): Promise<AlpacaPosition>;
         closePosition(symbol: string): Promise<{}>;
+        closeAllPositions(cancelOrders: boolean): Promise<{}>;
         getAssets(params: GetAssetsParams): Promise<Asset[]>;
         getCalendar({ start, end }: { start: Date; end: Date }): Promise<Calendar[]>;
         replaceOrder(
