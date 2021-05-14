@@ -49,82 +49,13 @@ we have 2 types of websockets:
 - data websocket: get updates data equities
 - account/trade websocket: get updates on your account
 
-please refer to this [example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/websocket_listener.js) 
+please refer to this [example](https://github.com/alpacahq/alpaca-trade-api-js/blob/master/examples/websocket_example_datav2.js) 
 code to see how to use the websockets. 
 
 ##### Data WS 
-you could use one of the 2 websockets we provide:
-1. The Alpaca WS
-2. The Polygon WS
+The Alapca websocket service now supports V2. Make sure you update your old sample code accordingly.<br> 
+You could use it even if you don't have a funded account. <br>
 
-The default WS is Alpaca. and you could use it even if you don't have a
- funded account. The polygon WS can only be used with a funded account.
-<br>In order to use the Polygon WS you need to pass this parameter to the
- Alpaca constructor `usePolygon: true`
-
-##### Subscribing to the different WS
-The other difference is the way we subscribe to different channels.
-###### Alpaca
-```js
-  client.subscribe(['alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/AM.GOOG'])
-``` 
-
-###### Polygon
-```js
-  client.subscribe(['T.FB', 'Q.AAPL', 'AM.GOOG', 'A.TSLA'])
-``` 
-##### Example Code
-```js
-const client = alpaca.data_ws
-client.onConnect(function() {
-  console.log("Connected")
-  client.subscribe(['alpacadatav1/T.FB', 'alpacadatav1/Q.AAPL', 'alpacadatav1/AM.AAPL']) // when using alpaca ws
-  client.subscribe(['alpacadatav1/T.FB', 'Q.AAPL', 'A.FB', 'AM.AAPL'])  // when using polygon ws
-})
-client.onDisconnect(() => {
-  console.log("Disconnected")
-})
-client.onStateChange(newState => {
-  console.log(`State changed to ${newState}`)
-})
-client.onStockTrades(function(subject, data) {
-  console.log(`Stock trades: ${subject}, price: ${data.price}`)
-})
-client.onStockQuotes(function(subject, data) {
-  console.log(`Stock quotes: ${subject}, bid: ${data.bidprice}, ask: ${data.askprice}`)
-})
-client.onStockAggSec(function(subject, data) {
-  console.log(`Stock agg sec: ${subject}, ${data}`)
-})
-client.onStockAggMin(function(subject, data) {
-  console.log(`Stock agg min: ${subject}, ${data}`)
-})
-client.connect()
-```
-
-##### Account WS 
-used like this
-```js
-const updates_client = this.alpaca.trade_ws
-updates_client.onConnect(function () {
-    console.log("Connected")
-    const trade_keys = ['trade_updates', 'account_updates']
-    updates_client.subscribe(trade_keys);
-})
-updates_client.onDisconnect(() => {
-    console.log("Disconnected")
-})
-updates_client.onStateChange(newState => {
-    console.log(`State changed to ${newState}`)
-})
-updates_client.onOrderUpdate(data => {
-    console.log(`Order updates: ${JSON.stringify(data)}`)
-})
-updates_client.onAccountUpdate(data => {
-    console.log(`Account updates: ${JSON.stringify(data)}`)
-})
-updates_client.connect()
-```
 
 ## Methods
 
@@ -200,7 +131,8 @@ Calls `POST /orders` and creates a new order.
 ```ts
 createOrder({
   symbol: string, // any valid ticker symbol
-  qty: number,
+  qty: number, 
+  notional: number, // qty or notional required, not both
   side: 'buy' | 'sell',
   type: 'market' | 'limit' | 'stop' | 'stop_limit' | 'trailing_stop',
   time_in_force: 'day' | 'gtc' | 'opg' | 'ioc',
@@ -333,53 +265,105 @@ Calls `GET /calendar` and returns the market calendar.
 getCalendar({ start: Date, end: Date }) => Promise<Calendar[]>
 ```
 
+### Watchlist API
+available methods for you to use:
+
+```js
+module.exports = {
+    getWatchlists,
+    getWatchlist,
+    addWatchlist,
+    addToWatchlist,
+    updateWatchlist,
+    deleteWatchlist,
+    deleteFromWatchlist,
+}
+```
+
+#### Get All Watchlists
+```js
+this.alpaca.getWatchlists().then((response) => {
+      console.log(response)
+    })
+```
+
+#### Get Specific Watchlist
+```js
+ // xxxx.. are the watchlist id you get on creation or with gat all
+ this.alpaca.getWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
+      console.log(response)
+    })
+```
+
+#### Add a Watchlist
+```js
+this.alpaca.addWatchlist("myWatchList", []).then((response) => {
+      console.log(response)
+    })
+```
+#### Add to Watchlist
+
+```js
+this.alpaca.addToWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
+  console.log(response)
+})
+```
+#### Update a Watchlist
+```js
+this.alpaca.updateWatchlist("myWatchList", ["AAPL", "GOOG"]).then((response) => {
+      console.log(response)
+    })
+```
+#### Delete a Watchlist
+```js
+this.alpaca.deleteWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx').then((response) => {
+      console.log(response)
+    })
+```
+
+#### Delete from Watchlist
+```js
+this.alpaca.deleteFromWatchlist('xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', "AAPL").then((response) => {
+  console.log(response)
+})
+```
+
 ### Data API
 
 #### Get Bars
 
 ```ts
-getBars(
-  'minute' | '1Min' | '5Min' | '15Min' | 'day' | '1D',
-  symbol | symbol[], // which ticker symbols to get bars for
+getBarsV2(
+  symbol,
+  
   {
     limit: number,
     start: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
     end: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
-    after: date isoformat string yyyy-mm-ddThh:MM:ss-04:00,
-    until: date isoformat string yyyy-mm-ddThh:MM:ss-04:00
+    timeframe: "1Min" | "1Hour" | "1Day"
   }
 ) => Promise<BarsObject>
 ```
 ###### example
 ```js
-this.alpaca.getBars('1Min', ['AAPL', 'TSLA'], {start:'2020-04-20T09:30:00-04:00', end:'2020-04-29T16:00:00-04:00'}).then((response) => {
-          console.log(response)
-        })
+let resp = this.alpaca.getBarsV2(
+    "AAPL",
+    {
+        start: "2021-02-01",
+        end: "2021-02-10",
+        limit: 2,
+        timeframe: "1Day",
+        adjustment: "all",
+    },
+    alpaca.configuration
+);
+const bars = [];
 
-this.alpaca.getBars('1D', ['AAPL', 'TSLA'], {start:'2020-04-20T00:00:00-04:00', end:'2020-04-29T00:00:00-04:00samples'}).then((response) => {
-          console.log(response)
-        })
-
-
+for await (let b of resp) {
+    console.log(b)
+}
 ```
 note: to get the date of response samples you could do this `console.log(new Date(resp['AAPL'][0].startEpochTime*1000))`
-
-#### Get Aggregates
-
-```ts
-getAggregates(
-  symbol: string,
-  timespan: 'minute', 'hour', 'day', 'week', 'month', 'quarter', 'year',
-  from: Date,
-  to: Date,
-) => Promise<AggregatesObject>
-```
-###### example
-```js
-this.alpaca.getAggregates('AAPL', 'minute', '2020-04-20', '2020-04-20').then((response) => {
-          console.log(response)
-        })
-```
 
 #### Last trade
 
@@ -444,26 +428,3 @@ The way you select which websocket to use is by setting the `usePolygon
     /*.*'` are for the Alpaca server; the rest are for the Polygon server.
     <br>In order to make calls to the Polygon API, you must have opened your Alpaca brokerage account.
     Otherwise Polygon's API will be unavailable.
-#### Callbacks
-how to get the data you subscribed to. we do this by calling these methods
- with our callback for each and every channel:
-* `websocket.onOrderUpdate(function(data))`: Register callback function for the channel `'trade_updates'`.
-* `websocket.onAccountUpdate(function(data))`: Register callback function for the channel `'account_updates'`.
-* `websocket.onStockTrades(function(data))`: Register callback function for
- the channel `'T.<SYMBOL>'` or `'alpacadatav1/T.<SYMBOL>'`.
-* `websocket.onStockQuotes(function(data))`: Register callback function for
- the channel `'Q.<SYMBOL>'` or `'alpacadatav1/Q.<SYMBOL>'`.
-* `websocket.onStockAggSec(function(data))`: Register callback function for
- the channel `'A.<SYMBOL>'`. (Polygon only)
-* `websocket.onStockAggMin(function(data))`: Register callback function for
- the channel `'AM.<SYMBOL>'` or `'alpacadatav1/AM.<SYMBOL>'`.
-
-## Running Multiple Strategies
-There's a way to execute more than one algorithm at once.<br>
-The websocket connection is limited to 1 connection per account. <br>
-For that exact purpose this ![project](https://github.com/shlomikushchi/alpaca-proxy-agent) was created<br>
-The steps to execute this are:
-* Run the Alpaca Proxy Agent as described in the project's README
-* Define this env variable: `DATA_PROXY_WS` to be the address of the proxy agent. (e.g: `DATA_PROXY_WS=ws://192.168.99.100:8765`)
-* execute your algorithm. it will connect to the servers through the proxy agent allowing you to execute multiple strategies
-
