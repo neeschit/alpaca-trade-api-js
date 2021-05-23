@@ -19,12 +19,12 @@ declare namespace Alpaca {
     }
 
     export const enum Exchange {
-        AMEX = 'AMEX',
-        ARCA = 'ARCA',
-        BATS = 'BATS',
-        NYSE = 'NYSE',
-        NASDAQ = 'NASDAQ',
-        NYSEARCA = 'NYSEARCA'
+        AMEX = "AMEX",
+        ARCA = "ARCA",
+        BATS = "BATS",
+        NYSE = "NYSE",
+        NASDAQ = "NASDAQ",
+        NYSEARCA = "NYSEARCA",
     }
 
     export const enum TradeDirection {
@@ -145,7 +145,10 @@ declare namespace Alpaca {
         change_today: string;
     }
 
-    export type SimpleAlpacaPosition = Pick<AlpacaPosition, "symbol" | "qty" | "avg_entry_price">;
+    export type SimpleAlpacaPosition = Pick<
+        AlpacaPosition,
+        "symbol" | "qty" | "avg_entry_price"
+    >;
 
     export type AlpacaOrderStatusFilter = "open" | "closed" | "all";
 
@@ -165,24 +168,114 @@ declare namespace Alpaca {
         date: string;
     }
 
-    export interface Broker {
-        createOrder(params: AlpacaTradeConfig): Promise<AlpacaOrder>;
-        cancelAllOrders(): Promise<{}>;
-        cancelOrder(oid: string): Promise<{}>;
-        getOrderByClientId(oid: string): Promise<AlpacaOrder>;
-        getOrders(params: GetOrdersParams): Promise<AlpacaOrder[]>;
-        getPositions(): Promise<AlpacaPosition[]>;
-        getPosition(symbol: string): Promise<AlpacaPosition>;
-        closePosition(symbol: string): Promise<{}>;
-        getAssets(params: GetAssetsParams): Promise<Asset[]>;
-        getCalendar({ start, end }: { start: Date; end: Date }): Promise<Calendar[]>;
-        replaceOrder(
-            oid: string,
-            params: Pick<
-                AlpacaTradeConfig,
-                "client_order_id" | "limit_price" | "stop_price" | "time_in_force" | "qty"
-            >
-        ): Promise<AlpacaOrder>;
+    export interface StreamingUpdateSymbol {
+        S: string;
+    }
+
+    export interface AlpacaBarsV2 {
+        /** Timestamp in RFC-3339 format with nanosecond precision. */
+        t: string;
+        /** Open price. */
+        o: number;
+        /** High price. */
+        h: number;
+        /** Low price. */
+        l: number;
+        /** Close price. */
+        c: number;
+        /** Volume. */
+        v: number;
+    }
+
+    export interface AlpacaTradesV2 {
+        /** Timestamp in RFC-3339 format with nanosecond precision. */
+        t: string;
+        /** Exchange where the trade happened. */
+        x: string;
+        /** Trade price. */
+        p: number;
+        /** Trade size. */
+        s: number;
+        /** Trade conditions. */
+        c: string[];
+        /** Trade ID. */
+        i: number;
+        /** Tape. */
+        z: string;
+    }
+
+    export interface AlpacaQuotesV2 {
+        /** Timestamp in Date format. */
+        t: string;
+        /** Ask exchange. */
+        ax: string;
+        /** Ask price. */
+        ap: number;
+        /** Ask size. */
+        as: number;
+        /** Bid exchange. */
+        bx: string;
+        /** Bid price. */
+        bp: number;
+        /** Bid size. */
+        bs: number;
+        /** Quote conditions. */
+        c: string[];
+    }
+
+    export interface TradesV2Response {
+        trades: AlpacaTradesV2[];
+        symbol: string;
+        next_page_token: string;
+    }
+
+    export interface BarsV2Response {
+        bars: AlpacaBarsV2[];
+        symbol: string;
+        next_page_token: string;
+    }
+
+    export interface QuotesV2Response {
+        quotes: AlpacaQuotesV2[];
+        symbol: string;
+        next_page_token: string;
+    }
+
+    export interface SnapshotResponse {
+        latestTrade: AlpacaTradesV2;
+        latestQuote: AlpacaQuotesV2;
+        minuteBar: AlpacaBarsV2;
+        dailyBar: AlpacaBarsV2;
+        prevDailyBar: AlpacaBarsV2;
+    }
+
+    export interface AlpacaStreamingBar
+        extends StreamingUpdateSymbol,
+            AlpacaBarsV2 {}
+
+    export interface AlpacaStreamingTrade
+        extends StreamingUpdateSymbol,
+            AlpacaTradesV2 {}
+
+    export interface AlpacaStreamingQuote
+        extends StreamingUpdateSymbol,
+            AlpacaQuotesV2 {}
+
+    export class AlpacaStreamV2Client extends EventEmitter {
+        connect(): void;
+        disconnect(): void;
+        onConnect(cb: () => void): void;
+        onDisconnect(cb: () => void): void;
+        onError(cb: () => void): void;
+        onStockTrade(cb: (trade: AlpacaStreamingTrade) => void): void;
+        onStockBar(cb: (bar: AlpacaStreamingBar) => void): void;
+        onStockQuote(cb: (quote: AlpacaStreamingQuote) => void): void;
+        subscribeForTrades(trades: string[]): void;
+        unsubscribeFromTrades(trades: string[]): void;
+        subscribeForQuotes(quotes: string[]): void;
+        unsubscribeFromQuotes(quotes: string[]): void;
+        subscribeForBars(bars: string[]): void;
+        unsubscribeFromBars(bars: string[]): void;
     }
 
     export class AlpacaStreamingData extends AlpacaStreamingClient {
@@ -207,9 +300,10 @@ declare namespace Alpaca {
         onStateChange(cb: (newState: any) => void): void;
     }
 
-    export class Alpaca implements Broker {
+    export class Alpaca {
         data_ws: AlpacaStreamingData;
         trade_ws: AlpacaStreamingUpdates;
+        data_stream_v2: AlpacaStreamV2Client;
         cancelOrder(oid: string): Promise<{}>;
         getOrderByClientId(oid: string): Promise<AlpacaOrder>;
         createOrder(params: AlpacaTradeConfig): Promise<AlpacaOrder>;
@@ -220,14 +314,28 @@ declare namespace Alpaca {
         closePosition(symbol: string): Promise<{}>;
         closeAllPositions(cancelOrders: boolean): Promise<{}>;
         getAssets(params: GetAssetsParams): Promise<Asset[]>;
-        getCalendar({ start, end }: { start: Date; end: Date }): Promise<Calendar[]>;
+        getCalendar({
+            start,
+            end,
+        }: {
+            start: Date;
+            end: Date;
+        }): Promise<Calendar[]>;
         replaceOrder(
             oid: string,
             params: Pick<
                 AlpacaTradeConfig,
-                "client_order_id" | "limit_price" | "stop_price" | "time_in_force" | "qty"
+                | "client_order_id"
+                | "limit_price"
+                | "stop_price"
+                | "time_in_force"
+                | "qty"
             >
         ): Promise<AlpacaOrder>;
+        getTradesV2(): Promise<TradesV2Response>;
+        getBarsV2(): Promise<BarsV2Response>;
+        getQuotesV2(): Promise<QuotesV2Response>;
+        getSnapshot(): Promise<SnapshotResponse>;
     }
 }
 
