@@ -300,10 +300,24 @@ declare namespace Alpaca {
         onStateChange(cb: (newState: any) => void): void;
     }
 
+    export interface GetHistoricalOptions {
+        start: string;
+        end: string;
+        limit: number;
+        page_token?: string;
+    }
+
+    export type Timeframe =  "1Min" | "1Hour" | "1Day";
+
+    export interface GetHistoricalBarsOptions extends GetHistoricalOptions {
+        timeframe: Timeframe;
+    }
+
     export class Alpaca {
         data_ws: AlpacaStreamingData;
         trade_ws: AlpacaStreamingUpdates;
         data_stream_v2: AlpacaStreamV2Client;
+        configuration: any;
         cancelOrder(oid: string): Promise<{}>;
         getOrderByClientId(oid: string): Promise<AlpacaOrder>;
         createOrder(params: AlpacaTradeConfig): Promise<AlpacaOrder>;
@@ -332,10 +346,22 @@ declare namespace Alpaca {
                 | "qty"
             >
         ): Promise<AlpacaOrder>;
-        getTradesV2(): Promise<TradesV2Response>;
-        getBarsV2(): Promise<BarsV2Response>;
-        getQuotesV2(): Promise<QuotesV2Response>;
-        getSnapshot(): Promise<SnapshotResponse>;
+        getTradesV2(
+            symbol: string,
+            options: GetHistoricalOptions,
+            config: any
+        ): Generator<AlpacaTradesV2>;
+        getBarsV2(
+            symbol: string,
+            options: GetHistoricalBarsOptions,
+            config: any
+        ): Generator<AlpacaBarsV2>;
+        getQuotesV2(
+            symbol: string,
+            options: GetHistoricalOptions,
+            config: any
+        ): Generator<AlpacaQuotesV2>;
+        getSnapshot(symbol: string, config: any): Promise<SnapshotResponse>;
     }
 }
 
